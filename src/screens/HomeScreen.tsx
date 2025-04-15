@@ -9,11 +9,19 @@ import {
   FlatList,
   Dimensions,
   SafeAreaView,
+  Animated,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
 import { Style } from '../types/navigation';
 import * as ImagePicker from 'expo-image-picker';
+import { colors } from '../theme/colors';
+
+// Import local images
+const classicPortraitImage = require('../../assets/images/classic-portrait.jpg');
+const watercolorImage = require('../../assets/images/water-color.jpg');
+const popArtImage = require('../../assets/images/pop-art.jpg');
+const oilPaintingImage = require('../../assets/images/oil-painting.jpg');
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -22,8 +30,10 @@ interface Props {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.7;
-const CARD_HEIGHT = CARD_WIDTH * 1.2;
+const COLUMN_COUNT = 2;
+const SPACING = 10;
+const ITEM_WIDTH = (width - SPACING * (COLUMN_COUNT + 1)) / COLUMN_COUNT;
+const ITEM_HEIGHT = ITEM_WIDTH * 1.2;
 
 const stylesList: Style[] = [
   {
@@ -31,28 +41,28 @@ const stylesList: Style[] = [
     name: 'Classic Portrait',
     description: 'A timeless, elegant portrait style perfect for capturing your pet\'s personality',
     price: 29.99,
-    image: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&auto=format&fit=crop&q=60',
+    image: classicPortraitImage,
   },
   {
     id: '2',
     name: 'Watercolor',
     description: 'A beautiful watercolor effect that turns your pet into a work of art',
     price: 34.99,
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop&q=60',
+    image: watercolorImage,
   },
   {
     id: '3',
     name: 'Pop Art',
     description: 'A vibrant, colorful style inspired by Andy Warhol',
     price: 39.99,
-    image: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=500&auto=format&fit=crop&q=60',
+    image: popArtImage,
   },
   {
     id: '4',
     name: 'Oil Painting',
     description: 'A sophisticated oil painting style that looks like a masterpiece',
     price: 44.99,
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop&q=60',
+    image: oilPaintingImage,
   },
 ];
 
@@ -65,9 +75,24 @@ const recentCreations = [
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [petImage, setPetImage] = useState<string | null>(null);
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId);
+    if (selectedStyle === styleId) {
+      // Deselect if already selected
+      setSelectedStyle(null);
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Select new style
+      setSelectedStyle(styleId);
+      Animated.spring(scaleAnim, {
+        toValue: 1.05,
+        useNativeDriver: true,
+      }).start();
+    }
   };
 
   const handleUploadImage = async () => {
@@ -107,16 +132,30 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         selectedStyle === item.id && styles.selectedCard
       ]}
       onPress={() => handleStyleSelect(item.id)}
+      activeOpacity={0.9}
     >
-      <Image
-        source={{ uri: item.image }}
-        style={styles.styleImage}
-      />
-      <View style={styles.styleInfo}>
-        <Text style={styles.styleName}>{item.name}</Text>
-        <Text style={styles.styleDescription}>{item.description}</Text>
-        <Text style={styles.stylePrice}>${item.price}</Text>
-      </View>
+      <Animated.View
+        style={[
+          styles.styleCardContent,
+          selectedStyle === item.id && {
+            transform: [{ scale: scaleAnim }]
+          }
+        ]}
+      >
+        <Image
+          source={item.image}
+          style={styles.styleImage}
+          resizeMode="contain"
+        />
+        <View style={styles.styleInfo}>
+          <Text style={styles.styleTitle}>{item.name}</Text>
+          {selectedStyle === item.id && (
+            <View style={styles.selectedIndicator}>
+              <Text style={styles.selectedText}>Selected</Text>
+            </View>
+          )}
+        </View>
+      </Animated.View>
     </TouchableOpacity>
   );
 
@@ -134,9 +173,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>Transform Your Pet into Art</Text>
-          <Text style={styles.heroSubtitle}>Choose a style, upload a photo, and get a beautiful portrait</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome to RealPet AI</Text>
+          <Text style={styles.subtitle}>Transform your pet photos into stunning artwork</Text>
         </View>
 
         {/* Style Selection Section */}
@@ -146,11 +185,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             data={stylesList}
             renderItem={renderStyleItem}
             keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.styleList}
-            snapToInterval={CARD_WIDTH + 20}
-            decelerationRate="fast"
+            numColumns={COLUMN_COUNT}
+            key={`grid-${COLUMN_COUNT}`}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.styleGrid}
           />
         </View>
 
@@ -203,86 +241,83 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.default,
   },
-  heroSection: {
+  header: {
     padding: 20,
-    backgroundColor: '#f4511e',
-    alignItems: 'center',
+    backgroundColor: colors.background.default,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.grey[800],
   },
-  heroTitle: {
+  title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 10,
+    color: colors.text.primary,
+    marginBottom: 8,
   },
-  heroSubtitle: {
+  subtitle: {
     fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
-    opacity: 0.9,
+    color: colors.text.secondary,
   },
   section: {
     padding: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 16,
   },
-  styleList: {
-    paddingRight: 20,
+  styleGrid: {
+    padding: SPACING,
   },
   styleCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    marginRight: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
+    margin: SPACING / 2,
+    backgroundColor: colors.background.paper,
     overflow: 'hidden',
   },
+  styleCardContent: {
+    flex: 1,
+  },
   selectedCard: {
-    borderColor: '#f4511e',
-    borderWidth: 3,
+    borderColor: colors.secondary.main,
+    borderWidth: 2,
   },
   styleImage: {
     width: '100%',
-    height: CARD_WIDTH,
-    resizeMode: 'cover',
+    height: ITEM_WIDTH * 1.2, // Increased by 20%
+    backgroundColor: colors.grey[800],
   },
   styleInfo: {
-    padding: 15,
+    padding: 8,
+    alignItems: 'center',
   },
-  styleName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  styleDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  stylePrice: {
+  styleTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#f4511e',
+    fontWeight: '700',
+    color: colors.text.primary,
+    textAlign: 'center',
+  },
+  selectedIndicator: {
+    backgroundColor: colors.secondary.main,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  selectedText: {
+    color: colors.text.primary,
+    fontSize: 10,
+    fontWeight: '600',
   },
   uploadButton: {
     width: '100%',
     height: 200,
     borderRadius: 15,
     overflow: 'hidden',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.paper,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -291,11 +326,11 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background.paper,
   },
   uploadText: {
     fontSize: 18,
-    color: '#666',
+    color: colors.text.secondary,
   },
   uploadedImage: {
     width: '100%',
@@ -303,20 +338,19 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   createButton: {
-    backgroundColor: '#f4511e',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: colors.secondary.main,
+    margin: 20,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 20,
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.grey[300],
   },
   createButtonText: {
-    color: '#fff',
+    color: colors.text.primary,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   recentList: {
     paddingRight: 20,

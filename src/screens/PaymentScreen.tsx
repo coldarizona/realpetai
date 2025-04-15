@@ -11,18 +11,15 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types/navigation';
-import { Style } from '../types/navigation';
+import { colors } from '../theme/colors';
 
-type PaymentScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Payment'>;
-type PaymentScreenRouteProp = RouteProp<RootStackParamList, 'Payment'>;
-
-interface Props {
-  navigation: PaymentScreenNavigationProp;
-  route: PaymentScreenRouteProp;
-}
+type PaymentScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, 'Payment'>;
+  route: RouteProp<RootStackParamList, 'Payment'>;
+};
 
 // Mock styles data - in a real app, this would come from a context or API
-const stylesList: Style[] = [
+const stylesList = [
   {
     id: '1',
     name: 'Classic Portrait',
@@ -53,7 +50,7 @@ const stylesList: Style[] = [
   },
 ];
 
-const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
+const PaymentScreen: React.FC<PaymentScreenProps> = ({ navigation, route }) => {
   const { styleId } = route.params;
   const selectedStyle = stylesList.find(style => style.id === styleId);
   
@@ -64,10 +61,10 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
   const [email, setEmail] = useState('');
   
   const handlePayment = () => {
-    // In a real app, this would process the payment
+    // Here you would typically integrate with a payment processor
     Alert.alert(
       'Payment Successful',
-      'Your pet portrait is being created! You will receive it via email.',
+      'Your pet portrait will be generated shortly!',
       [
         {
           text: 'OK',
@@ -82,10 +79,10 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.container}>
         <Text style={styles.errorText}>Style not found</Text>
         <TouchableOpacity
-          style={styles.button}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.buttonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -93,33 +90,29 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
   
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryTitle}>Order Summary</Text>
+      <View style={styles.orderSummary}>
+        <Text style={styles.sectionTitle}>Order Summary</Text>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Style:</Text>
           <Text style={styles.summaryValue}>{selectedStyle.name}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Price:</Text>
-          <Text style={styles.summaryValue}>${selectedStyle.price}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total:</Text>
-          <Text style={styles.summaryValue}>${selectedStyle.price}</Text>
+          <Text style={styles.summaryValue}>${selectedStyle.price.toFixed(2)}</Text>
         </View>
       </View>
       
-      <View style={styles.formContainer}>
-        <Text style={styles.formTitle}>Payment Details</Text>
+      <View style={styles.paymentForm}>
+        <Text style={styles.sectionTitle}>Payment Details</Text>
         
         <Text style={styles.inputLabel}>Card Number</Text>
         <TextInput
           style={styles.input}
-          placeholder="1234 5678 9012 3456"
           value={cardNumber}
           onChangeText={setCardNumber}
+          placeholder="1234 5678 9012 3456"
           keyboardType="numeric"
+          maxLength={19}
         />
         
         <View style={styles.row}>
@@ -127,20 +120,21 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.inputLabel}>Expiry Date</Text>
             <TextInput
               style={styles.input}
-              placeholder="MM/YY"
               value={expiryDate}
               onChangeText={setExpiryDate}
+              placeholder="MM/YY"
+              maxLength={5}
             />
           </View>
           <View style={styles.halfInput}>
             <Text style={styles.inputLabel}>CVV</Text>
             <TextInput
               style={styles.input}
-              placeholder="123"
               value={cvv}
               onChangeText={setCvv}
+              placeholder="123"
               keyboardType="numeric"
-              secureTextEntry
+              maxLength={3}
             />
           </View>
         </View>
@@ -148,27 +142,30 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.inputLabel}>Name on Card</Text>
         <TextInput
           style={styles.input}
-          placeholder="John Doe"
           value={name}
           onChangeText={setName}
+          placeholder="John Doe"
         />
         
         <Text style={styles.inputLabel}>Email</Text>
         <TextInput
           style={styles.input}
-          placeholder="john@example.com"
           value={email}
           onChangeText={setEmail}
+          placeholder="john@example.com"
           keyboardType="email-address"
+          autoCapitalize="none"
         />
+
+        <TouchableOpacity
+          style={styles.payButton}
+          onPress={handlePayment}
+        >
+          <Text style={styles.payButtonText}>
+            Pay ${selectedStyle.price.toFixed(2)}
+          </Text>
+        </TouchableOpacity>
       </View>
-      
-      <TouchableOpacity
-        style={styles.payButton}
-        onPress={handlePayment}
-      >
-        <Text style={styles.payButtonText}>Pay ${selectedStyle.price}</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -176,94 +173,90 @@ const PaymentScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background.default,
   },
-  errorText: {
-    fontSize: 18,
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#f4511e',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    margin: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  summaryContainer: {
+  orderSummary: {
     padding: 20,
-    backgroundColor: '#f9f9f9',
-    margin: 10,
-    borderRadius: 8,
+    backgroundColor: colors.background.paper,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.grey[800],
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: 16,
   },
   summaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   summaryLabel: {
     fontSize: 16,
-    color: '#666',
+    color: colors.text.secondary,
   },
   summaryValue: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: colors.text.primary,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#ddd',
-    marginVertical: 10,
-  },
-  formContainer: {
+  paymentForm: {
     padding: 20,
-  },
-  formTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
+    color: colors.text.secondary,
+    marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: colors.background.paper,
     borderRadius: 8,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
     fontSize: 16,
+    color: colors.text.primary,
+    borderWidth: 1,
+    borderColor: colors.grey[800],
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   halfInput: {
-    width: '48%',
+    flex: 1,
+    marginRight: 8,
   },
   payButton: {
-    backgroundColor: '#f4511e',
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: colors.secondary.main,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  payButtonText: {
+    color: colors.text.primary,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 16,
+    color: colors.error.main,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  backButton: {
+    backgroundColor: colors.primary.main,
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     margin: 20,
   },
-  payButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  backButtonText: {
+    color: colors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -3,7 +3,7 @@ export type Style = {
   name: string;
   description: string;
   price: number;
-  image: string;
+  image: any; // Using any for now to support both local and remote images
 };
 
 export type TabParamList = {
@@ -13,11 +13,12 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  Home: undefined;
+  MainTabs: undefined;
   Styles: undefined;
   Payment: {
     styleId: string;
   };
   Gallery: undefined;
   Profile: undefined;
+  Home: undefined; // Adding Home to fix the navigation type error
 }; 
